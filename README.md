@@ -11,3 +11,6 @@
 - ![VGG_16 模型](./documents/block_3.png)
 - ![VGG_16 模型](./documents/block_4.png)
 - ![VGG_16 模型](./documents/block_5.png)
+
+## 训练VGG遇到的问题
+- ![问题一](./documents/myplot_issue_1.png)
