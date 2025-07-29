@@ -10,10 +10,12 @@ import time
 import pandas as pd
 
 import torch
+from scipy.stats import moment
 from torch import nn
 from torch.utils.data import DataLoader, random_split
-from torchvision.datasets import FashionMNIST
+from torchvision.datasets import FashionMNIST, CIFAR10
 from torchvision import transforms
+import torch.optim as optim
 from torch.optim import Adam, SGD
 import matplotlib.pyplot as plt
 from matplotlib.font_manager import FontProperties
@@ -27,10 +29,13 @@ def data_process():
     """
     transform = transforms.Compose([
                     transforms.Resize((224, 224)),
-                    transforms.RandomHorizontalFlip(p=0.5),
-                    transforms.ToTensor()])
+                    transforms.RandomHorizontalFlip(),
+                    transforms.ToTensor(),
+                    transforms.Normalize(mean=[0.4914, 0.4822, 0.4465],
+                                         std=[0.2470, 0.2435, 0.2616])
+    ])
 
-    data = FashionMNIST(root='./data',
+    data = CIFAR10(root='./data',
                         train=True,
                         download=True,
                         transform=transform)
@@ -55,7 +60,13 @@ def train_process(model, train_data_loader, val_data_loader, epochs):
     # 初始化设备
     device_cuda = torch.device("cuda" if torch.cuda.is_available() else "cpu")
     # 优化器
-    optimizer = Adam(model.parameters(), lr=0.001)
+    optimizer = SGD(model.parameters(), lr=0.01, weight_decay=0.0005, momentum=0.9)
+    # 学习率调度器
+    lr_scheduler = optim.lr_scheduler.MultiStepLR(
+        optimizer,
+        milestones=[30, 60],
+        gamma=0.1
+    )
     # 交叉熵损失函数
     loss_func_cross_entropy = nn.CrossEntropyLoss()
     # 将模型放入设备中
@@ -126,6 +137,8 @@ def train_process(model, train_data_loader, val_data_loader, epochs):
         print(f"train_loss: {train_loss_all[-1]}, train_acc: {train_acc_all[-1]}")
         print(f"val_loss: {val_loss_all[-1]}, val_acc: {val_acc_all[-1]}")
 
+        lr_scheduler.step()
+
         # 保存最优精度的模型
         if val_acc_all[-1] > best_acc:
             best_acc = val_acc_all[-1]
@@ -182,6 +195,6 @@ if __name__ == '__main__':
 
     train_data, val_data = data_process()
 
-    train_process_data = train_process(vgg, train_data, val_data, 20)
+    train_process_data = train_process(vgg, train_data, val_data, 74)
 
     show_acc_loss_matplot(train_process_data)
